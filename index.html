@@ -1,0 +1,228 @@
+[20-10-2026 13:07] KING 👑: <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Z Pay Settlement Manager</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f6fb;color:#17243b}
+header{background:linear-gradient(120deg,#ff7138,#ffad32);color:white;padding:25px}
+header h1{margin:0 0 8px}
+nav{display:flex;gap:8px;flex-wrap:wrap;background:white;padding:12px}
+button{border:0;padding:12px 16px;border-radius:7px;cursor:pointer;font-weight:bold}
+nav button{background:#eaf0fb;color:#24446e}
+nav button:hover,.active{background:#1769e8!important;color:white!important}
+main{padding:20px;max-width:1200px;margin:auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px}
+.card,.panel{background:white;padding:18px;border-radius:12px;box-shadow:0 2px 10px #0000000c;margin-bottom:15px}
+.card small{color:#66748a}
+.amount{font-size:23px;font-weight:bold;margin-top:12px;overflow-wrap:anywhere}
+h2{font-size:20px}
+label{display:block;font-weight:bold;margin:12px 0 6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #d5deea;border-radius:7px}
+.primary{background:#1769e8;color:white;margin-top:14px}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{text-align:left;padding:12px;border-bottom:1px solid #e4e9f1}
+th{background:#f1f5fa}
+.tablewrap{overflow-x:auto}
+.page{display:none}.page.show{display:block}
+.note{background:#fff3d7;padding:12px;border-radius:8px;font-size:13px}
+@media(max-width:500px){main{padding:12px}header{padding:20px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Z PAY</h1>
+<div>Settlement Manager · Operations Dashboard</div>
+</header>
+
+<nav>
+<button class="active" onclick="showPage('dashboard',this)">Dashboard</button>
+<button onclick="showPage('transactions',this)">Transactions</button>
+<button onclick="showPage('settlements',this)">Settlements</button>
+<button onclick="showPage('users',this)">User Management</button>
+<button onclick="showPage('history',this)">Transaction History</button>
+<button onclick="showPage('settings',this)">Settings</button>
+</nav>
+
+<main>
+<section id="dashboard" class="page show">
+<h2>Home Dashboard</h2>
+<div class="cards">
+<div class="card"><small>Transaction Count</small><div class="amount" id="count">0</div></div>
+<div class="card"><small>Transaction Amount</small><div class="amount" id="gross">₹0.00</div></div>
+<div class="card"><small>Settlement Amount</small><div class="amount" id="net">₹0.00</div></div>
+<div class="card"><small>Commission Amount</small><div class="amount" id="commission">₹0.00</div></div>
+<div class="card"><small>Balance</small><div class="amount" id="balance">₹0.00</div></div>
+</div>
+<div class="panel">
+<h2>Recent Transactions</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Date</th><th>UTR</th><th>Payee</th><th>Amount</th><th>Commission</th><th>Net Settlement</th></tr></thead>
+<tbody id="recent"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="transactions" class="page">
+<div class="panel">
+<h2>Add Transaction</h2>
+<form id="txForm">
+<label>Amount (₹) *</label>
+<input id="amount" type="number" min="0.01" step="0.01" required>
+<label>UTR / Transaction ID *</label>
+<input id="utr" required>
+<label>Invoice Number</label>
+<input id="invoice">
+<label>Payee Name</label>
+<input id="payee">
+<label>Receiving Bank</label>
+<input id="bank">
+<label>Remarks</label>
+<textarea id="remarks"></textarea>
+<p>Commission rate: <b id="rateLabel">3.0928%</b></p>
+<p>Estimated commission: <b id="feePreview">₹0.00</b></p>
+<p>Estimated net settlement: <b id="netPreview">₹0.00</b></p>
+<button class="primary" type="submit">Save Transaction</button>
+</form>
+</div>
+</section>
+
+<section id="settlements" class="page">
+<div class="panel"><h2>Settlement Records</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Date</th><th>UTR</th><th>Payee</th><th>Gross</th><th>Commission</th><th>Net</th></tr></thead>
+<tbody id="settlementRows"></tbody>
+</table></div></div>
+</section>
+
+<section id="users" class="page">
+[20-10-2026 13:07] KING 👑: <div class="panel"><h2>User Management</h2>
+<p><b>Super Master:</b> Full management permissions (planned).</p>
+<p><b>Admin:</b> Add transaction and settlement entries (planned).</p>
+<p><b>User:</b> View permitted records only (planned).</p>
+<div class="note">यह demo स्क्रीन है। वास्तविक role-based login और permissions अभी जुड़े नहीं हैं।</div>
+</div>
+</section>
+
+<section id="history" class="page">
+<div class="panel"><h2>Transaction History</h2>
+<label>Search UTR, invoice or payee</label>
+<input id="search" placeholder="Type to search">
+<div class="tablewrap"><table>
+<thead><tr><th>Date</th><th>UTR</th><th>Invoice</th><th>Payee</th><th>Amount</th><th>Commission</th><th>Net</th><th>Action</th></tr></thead>
+<tbody id="historyRows"></tbody>
+</table></div></div>
+</section>
+
+<section id="settings" class="page">
+<div class="panel"><h2>Settings</h2>
+<label>Commission Percentage (%)</label>
+<input id="rateInput" type="number" min="0" max="100" step="0.0001" value="3.0928">
+<button class="primary" onclick="saveRate()">Save Commission Rate</button>
+<p>Current rate: <b id="currentRate">3.0928%</b></p>
+</div>
+</section>
+
+<div class="note">Demo only: records are saved in this browser. This is not a secure banking system. Do not enter real customer or banking data.</div>
+</main>
+
+<script>
+let records=[];
+let rate=3.0928;
+
+try{
+records=JSON.parse(localStorage.getItem('zpay_demo_records')||'[]');
+rate=Number(localStorage.getItem('zpay_demo_rate')||'3.0928');
+}catch(e){records=[]}
+
+function money(n){
+return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(n||0);
+}
+function fee(n){return Math.round(n*rate)/100;}
+function saveData(){
+localStorage.setItem('zpay_demo_records',JSON.stringify(records));
+localStorage.setItem('zpay_demo_rate',String(rate));
+}
+function showPage(id,button){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+document.getElementById(id).classList.add('show');
+document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+button.classList.add('active');
+render();
+}
+function safe(s){
+return String(s||'').replace(/[&<>"']/g,c=>({
+'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+}
+function makeRow(r,withAction=false){
+return '<tr><td>'+safe(r.date)+'</td><td>'+safe(r.utr)+'</td>'+
+(withAction?'<td>'+safe(r.invoice)+'</td>':'')+
+'<td>'+safe(r.payee)+'</td><td>'+money(r.amount)+'</td>'+
+'<td>'+money(r.fee)+'</td><td>'+money(r.net)+'</td>'+
+(withAction?'<td><button onclick="deleteRecord(\''+safe(r.id)+'\')">Delete</button></td>':'')+
+'</tr>';
+}
+function render(){
+let gross=records.reduce((s,r)=>s+r.amount,0);
+let fees=records.reduce((s,r)=>s+r.fee,0);
+let net=records.reduce((s,r)=>s+r.net,0);
+document.getElementById('count').textContent=records.length;
+document.getElementById('gross').textContent=money(gross);
+document.getElementById('commission').textContent=money(fees);
+document.getElementById('net').textContent=money(net);
+document.getElementById('balance').textContent=money(net);
+document.getElementById('rateLabel').textContent=rate.toFixed(4)+'%';
+document.getElementById('currentRate').textContent=rate.toFixed(4)+'%';
+document.getElementById('recent').innerHTML=records.slice(-5).reverse().map(r=>makeRow(r)).join('')||'<tr><td colspan="6">No transactions yet</td></tr>';
+document.getElementById('settlementRows').innerHTML=records.slice().reverse().map(r=>makeRow(r)).join('')||'<tr><td colspan="6">No settlements yet</td></tr>';
+filterHistory();
+}
+function filterHistory(){
+let q=(document.getElementById('search').value||'').toLowerCase();
+document.getElementById('historyRows').innerHTML=records.slice().reverse().filter(r=>(r.utr+' '+r.invoice+' '+r.payee).toLowerCase().includes(q)).map(r=>makeRow(r,true)).join('')||'<tr><td colspan="8">No matching records</td></tr>';
+}
+function deleteRecord(id){
+if(confirm('Delete this demo record?')){
+records=records.filter(r=>r.id!==id);
+saveData();render();
+}
+}
+document.getElementById('amount').addEventListener('input',function(){
+let a=Number(this.value)||0;
+document.getElementById('feePreview').
+[20-10-2026 13:07] KING 👑: textContent=money(fee(a));
+document.getElementById('netPreview').textContent=money(a-fee(a));
+});
+document.getElementById('txForm').addEventListener('submit',function(e){
+e.preventDefault();
+let a=Number(document.getElementById('amount').value);
+let u=document.getElementById('utr').value.trim();
+if(records.some(r=>r.utr.toLowerCase()===u.toLowerCase())){
+alert('This UTR already exists.');return;
+}
+records.push({
+id:String(Date.now()),date:new Date().toLocaleDateString('en-IN'),
+amount:a,fee:fee(a),net:a-fee(a),utr:u,
+invoice:document.getElementById('invoice').value,
+payee:document.getElementById('payee').value,
+bank:document.getElementById('bank').value,
+remarks:document.getElementById('remarks').value
+});
+saveData();this.reset();render();
+alert('Demo transaction saved.');
+});
+function saveRate(){
+let v=Number(document.getElementById('rateInput').value);
+if(!Number.isFinite(v)||v<0||v>100){alert('Enter a rate from 0 to 100.');return;}
+rate=v;
+records=records.map(r=>({...r,fee:fee(r.amount),net:r.amount-fee(r.amount)}));
+saveData();render();alert('Demo commission rate updated.');
+}
+document.getElementById('search').addEventListener('input',filterHistory);
+render();
+</script>
+</body>
+</html>
