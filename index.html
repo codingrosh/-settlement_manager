@@ -162,4 +162,155 @@ let accounts = {};
 
 function account(id) {
   if (!accounts[id]) {
-    accounts[id
+    accounts[id] = {
+      transactions: [],
+      settlements: []
+    };
+  }
+  return accounts[id];
+}
+
+function money(n) {
+  return "₹" + Number(n).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[c]);
+}
+
+function getTotals(id) {
+  const a = account(id);
+
+  const transactions = a.transactions.reduce(
+    (sum, t) => sum + t.amount, 0
+  );
+
+  const settled = a.settlements.reduce(
+    (sum, s) => sum + s.gross, 0
+  );
+
+  const charges = a.settlements.reduce(
+    (sum, s) => sum + s.charge, 0
+  );
+
+  return {
+    transactions,
+    settled,
+    charges,
+    balance: Math.max(
+      0,
+      Math.round((transactions - settled) * 100) / 100
+    )
+  };
+}
+
+function login() {
+  const id = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const role = document.getElementById("role").value;
+
+  const user = DEMO_USERS[id];
+
+  if (!user || user.password !== password || user.role !== role) {
+    document.getElementById("loginMessage").textContent =
+      "गलत User ID, Password या Role.";
+    return;
+  }
+
+  currentUser = { id, role };
+  account(id);
+
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+  document.getElementById("logout").classList.remove("hidden");
+
+  document.getElementById("welcome").textContent = "Welcome, " + id;
+
+  document.getElementById("description").textContent =
+    role === "superadmin" ? "Super Admin Dashboard" :
+    role === "admin" ? "Admin Dashboard" : "User Dashboard";
+
+  document.getElementById("transactionSection").classList.toggle(
+    "hidden", role !== "admin"
+  );
+
+  document.getElementById("settlementSection").classList.toggle(
+    "hidden", role !== "admin"
+  );
+
+  document.getElementById("adminSummary").classList.toggle(
+    "hidden", role !== "superadmin"
+  );
+
+  render();
+}
+
+function logoutUser() {
+  currentUser = null;
+
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("loginPage").classList.remove("hidden");
+  document.getElementById("logout").classList.add("hidden");
+  document.getElementById("password").value = "";
+  document.getElementById("loginMessage").textContent = "";
+}
+
+document.getElementById("transactionForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  if (!currentUser || currentUser.role !== "admin") return;
+
+  const amount = Number(document.getElementById("amount").value);
+  const utr = document.getElementById("utr").value.trim();
+
+  if (!Number.isFinite(amount) || amount <= 0 || !utr) {
+    alert("सही Amount और UTR डालें।");
+    return;
+  }
+
+  const a = account(currentUser.id);
+
+  if (a.transactions.some(t => t.utr === utr)) {
+    alert("यह UTR पहले दर्ज हो चुका है।");
+    return;
+  }
+
+  a.transactions.push({
+    date: new Date().toLocaleString("en-IN"),
+    amount: Math.round(amount * 100) / 100,
+    utr
+  });
+
+  this.reset();
+  render();
+});
+
+function settle() {
+  if (!currentUser || currentUser.role !== "admin") return;
+
+  const t = getTotals(currentUser.id);
+  const gross = t.balance;
+
+  if (gross <= 0) {
+    document.getElementById("settlementMessage").textContent =
+      "Available Balance नहीं है।";
+    return;
+  }
+
+  const charge = Math.round(gross * RATE * 100) / 100;
+  const net = Math.round((gross - charge) * 100) / 100;
+
+  const confirmed = confirm(
+    "Gross: " + money(gross) +
+    "\nCharge: " + money(charge) +
+    "\nNet: " + money(net) +
+    "\n\nक्या डेमो Settlement दर्ज करें
